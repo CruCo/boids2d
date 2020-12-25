@@ -25,23 +25,36 @@ public class Boid : RigidBody2D
 
     private int perceptionRadius = 150;
     private int evasionDistance = 80;
+
+    private float radStep = 10*Mathf.Pi/180;
+
     private Color vis_color = new Color(.867f, .91f, .247f, 0.1f);
-    private RayCast2D rayCast;
+    private List<RayCast2D> rayCasts = new List<RayCast2D>();
 
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
         AddToGroup(groupName);
-        AddRayCast();
+        AddRayCasts();
         ApplyInitialImpluse();
     }
 
-    private void AddRayCast()
+    private void AddRayCasts()
     {
-        rayCast = new RayCast2D();
-        AddChild(rayCast);
-        rayCast.Enabled = true;
+        float i = 0;
+        while (i < 2*Mathf.Pi)
+        {
+            if (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4)
+            {
+                var rayCast = new RayCast2D();
+                AddChild(rayCast);
+                rayCast.Enabled = true;
+                rayCast.CastTo = new Vector2(0, -perceptionRadius).Rotated(i);
+                rayCasts.Add(rayCast);
+            }
+            i += radStep;
+        }
     }
 
     private void ApplyInitialImpluse()
@@ -63,11 +76,13 @@ public class Boid : RigidBody2D
 
     private void Evade(List<Vector2> closest, Physics2DDirectBodyState state)
     {
-        closest.ForEach(node => {
+        closest.ForEach(node =>
+        {
             var distanceToNode = Position.DistanceTo(node);
-            if (distanceToNode < evasionDistance) {
+            if (distanceToNode < evasionDistance)
+            {
                 var angle = GetAngleTo(node);
-                state.AngularVelocity = (-angle)*(1/(distanceToNode/2))*torque;
+                state.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * torque;
             }
         });
         state.LinearVelocity = new Vector2(minSpeed, 0).Rotated(Rotation);
@@ -84,23 +99,12 @@ public class Boid : RigidBody2D
 
     private HashSet<Vector2> GetNodesInPerception()
     {
-        var radStep = 180 / Mathf.Pi / perceptionRadius;
-        var i = 0;
         var setOfColliders = new HashSet<Vector2>();
-        while (i <= perceptionRadius)
+        rayCasts.ForEach(rayCast =>
         {
-            var st = (float)(radStep * i) % (2 * Mathf.Pi);
-            if (st < 5 * Mathf.Pi / 4 || st > 7 * Mathf.Pi / 4)
-            {
-                rayCast.CastTo = new Vector2(0, -perceptionRadius).Rotated(st);
-                rayCast.ForceRaycastUpdate();
-                if (rayCast.IsColliding())
-                {
-                    setOfColliders.Add(rayCast.GetCollisionPoint());
-                }
-            }
-            i++;
-        }
+            if (rayCast.IsColliding())
+                setOfColliders.Add(rayCast.GetCollisionPoint());
+        });
         return setOfColliders;
     }
 
@@ -110,16 +114,14 @@ public class Boid : RigidBody2D
         if (Chosen)
         {
             DrawCircle(new Vector2(), perceptionRadius, vis_color);
-            var radStep = 180 / Mathf.Pi / perceptionRadius;
-            var i = 0;
-            while (i <= perceptionRadius)
+            float i = 0;
+            while (i < 2*Mathf.Pi)
             {
-                var st = (float)(radStep * i) % (2 * Mathf.Pi);
-                if (st < 5 * Mathf.Pi / 4 || st > 7 * Mathf.Pi / 4)
+                if (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4)
                 {
-                    DrawLine(new Vector2(0, 0), new Vector2(0, -perceptionRadius).Rotated(st), new Color("#ff8888"), 1);
+                    DrawLine(new Vector2(0, 0), new Vector2(0, -perceptionRadius).Rotated(i), new Color("#ff8888"), 1);
                 }
-                i++;
+                i += radStep;
             }
         }
     }
