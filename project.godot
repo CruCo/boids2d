@@ -19,6 +19,10 @@ config/name="Boids2Dv2"
 run/main_scene="res://World.tscn"
 config/icon="res://icon.png"
 
+[mono]
+
+debugger_agent/wait_timeout=5000
+
 [physics]
 
 2d/default_gravity_vector=Vector2( 0, 0 )
