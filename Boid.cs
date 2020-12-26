@@ -12,24 +12,24 @@ public class Boid : RigidBody2D
     private string groupName = "boids";
 
     [Export]
-    private int minSpeed = 80;
+    public int MinSpeed {get; set;} = 80;
 
     [Export]
-    private int maxSpeed = 120;
+    public int MaxSpeed {get; set;} = 120;
 
     [Export]
-    private int torque = 25;
+    public int Torque {get; set;} = 25;
 
     [Export]
     public bool Chosen { get; set; } = false;
 
     private int perceptionRadius = 150;
-    private int evasionDistance = 80;
+    public int EvasionDistance {get;} = 80;
 
     private float radStep = 10*Mathf.Pi/180;
 
     private Color vis_color = new Color(.867f, .91f, .247f, 0.1f);
-    private List<RayCast2D> rayCasts = new List<RayCast2D>();
+    public List<RayCast2D> RayCasts {get; set;} = new List<RayCast2D>();
 
 
     // Called when the node enters the scene tree for the first time.
@@ -45,22 +45,28 @@ public class Boid : RigidBody2D
         float i = 0;
         while (i < 2*Mathf.Pi)
         {
-            if (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4)
+            if (IsInVisibleArea(i))
             {
                 var rayCast = new RayCast2D();
                 AddChild(rayCast);
                 rayCast.Enabled = true;
                 rayCast.CastTo = new Vector2(0, -perceptionRadius).Rotated(i);
-                rayCasts.Add(rayCast);
+                RayCasts.Add(rayCast);
             }
             i += radStep;
         }
     }
 
+    private bool IsInVisibleArea(float i)
+    {
+        // Note: Blindspot between 225° and 315°
+        return (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4);
+    }
+
     private void ApplyInitialImpluse()
     {
         var rng = new RandomNumberGenerator();
-        var impulse = new Vector2(rng.RandiRange(minSpeed, maxSpeed), 0).Rotated(Rotation);
+        var impulse = new Vector2(rng.RandiRange(MinSpeed, MaxSpeed), 0).Rotated(Rotation);
         ApplyImpulse(new Vector2(), impulse);
     }
 
@@ -79,13 +85,13 @@ public class Boid : RigidBody2D
         closest.ForEach(node =>
         {
             var distanceToNode = Position.DistanceTo(node);
-            if (distanceToNode < evasionDistance)
+            if (distanceToNode < EvasionDistance)
             {
                 var angle = GetAngleTo(node);
-                state.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * torque;
+                state.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
             }
         });
-        state.LinearVelocity = new Vector2(minSpeed, 0).Rotated(Rotation);
+        state.LinearVelocity = new Vector2(MinSpeed, 0).Rotated(Rotation);
     }
 
     private List<Vector2> GetClosestPoints(HashSet<Vector2> nodesInPerception, int amount)
@@ -100,7 +106,7 @@ public class Boid : RigidBody2D
     private HashSet<Vector2> GetNodesInPerception()
     {
         var setOfColliders = new HashSet<Vector2>();
-        rayCasts.ForEach(rayCast =>
+        RayCasts.ForEach(rayCast =>
         {
             if (rayCast.IsColliding())
                 setOfColliders.Add(rayCast.GetCollisionPoint());
@@ -117,7 +123,7 @@ public class Boid : RigidBody2D
             float i = 0;
             while (i < 2*Mathf.Pi)
             {
-                if (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4)
+                if (IsInVisibleArea(i))
                 {
                     DrawLine(new Vector2(0, 0), new Vector2(0, -perceptionRadius).Rotated(i), new Color("#ff8888"), 1);
                 }
@@ -144,8 +150,8 @@ public class Boid : RigidBody2D
 
     private void MaintainSpeed()
     {
-        if (LinearVelocity.Length() < minSpeed)
-            AppliedForce = new Vector2(minSpeed, 0).Rotated(Rotation);
+        if (LinearVelocity.Length() < MinSpeed)
+            AppliedForce = new Vector2(MinSpeed, 0).Rotated(Rotation);
         else
             AppliedForce = new Vector2();
     }
