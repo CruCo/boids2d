@@ -12,24 +12,24 @@ public class Boid : RigidBody2D
     private string groupName = "boids";
 
     [Export]
-    public int MinSpeed {get; set;} = 80;
+    public int MinSpeed { get; set;} = 80;
 
     [Export]
-    public int MaxSpeed {get; set;} = 120;
+    public int MaxSpeed { get; set; } = 120;
 
     [Export]
-    public int Torque {get; set;} = 25;
+    public int Torque { get; set; } = 25;
 
     [Export]
     public bool Chosen { get; set; } = false;
 
     private int perceptionRadius = 150;
-    public int EvasionDistance {get;} = 80;
+    public int EvasionDistance { get; } = 80;
 
-    private float radStep = 10*Mathf.Pi/180;
+    private float radStep = 10 * Mathf.Pi / 180;
 
     private Color vis_color = new Color(.867f, .91f, .247f, 0.1f);
-    public List<RayCast2D> RayCasts {get; set;} = new List<RayCast2D>();
+    public List<RayCast2D> RayCasts { get; } = new List<RayCast2D>();
 
 
     // Called when the node enters the scene tree for the first time.
@@ -43,7 +43,7 @@ public class Boid : RigidBody2D
     private void AddRayCasts()
     {
         float i = 0;
-        while (i < 2*Mathf.Pi)
+        while (i < 2 * Mathf.Pi)
         {
             if (IsInVisibleArea(i))
             {
@@ -121,7 +121,7 @@ public class Boid : RigidBody2D
         {
             DrawCircle(new Vector2(), perceptionRadius, vis_color);
             float i = 0;
-            while (i < 2*Mathf.Pi)
+            while (i < 2 * Mathf.Pi)
             {
                 if (IsInVisibleArea(i))
                 {
