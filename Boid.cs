@@ -32,12 +32,22 @@ public class Boid : RigidBody2D
     public List<RayCast2D> RayCasts { get; } = new List<RayCast2D>();
 
 
-    // Called when the node enters the scene tree for the first time.
-    public override void _Ready()
+    public override void _EnterTree()
     {
         AddToGroup(groupName);
         AddRayCasts();
+    }
+
+    // Called when the node enters the scene tree for the first time.
+    public override void _Ready()
+    {
         ApplyInitialImpluse();
+    }
+
+    public void UpdateDirection() {
+        HashSet<Vector2> nodesInPerception = GetNodesInPerception();
+        List<Vector2> closest = GetClosestPoints(nodesInPerception, 1);
+        Evade(closest);
     }
 
     private void AddRayCasts()
@@ -75,12 +85,9 @@ public class Boid : RigidBody2D
         base._IntegrateForces(state);
         TeleportOnScreenExit(state);
         MaintainSpeed();
-        HashSet<Vector2> nodesInPerception = GetNodesInPerception();
-        List<Vector2> closest = GetClosestPoints(nodesInPerception, 1);
-        Evade(closest, state);
     }
 
-    private void Evade(List<Vector2> closest, Physics2DDirectBodyState state)
+    private void Evade(List<Vector2> closest)
     {
         closest.ForEach(node =>
         {
@@ -88,10 +95,10 @@ public class Boid : RigidBody2D
             if (distanceToNode < EvasionDistance)
             {
                 var angle = GetAngleTo(node);
-                state.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
+                this.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
             }
         });
-        state.LinearVelocity = new Vector2(MinSpeed, 0).Rotated(Rotation);
+        this.LinearVelocity = new Vector2(MinSpeed, 0).Rotated(Rotation);
     }
 
     private List<Vector2> GetClosestPoints(HashSet<Vector2> nodesInPerception, int amount)

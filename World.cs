@@ -1,19 +1,34 @@
 using Godot;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 public class World : Node2D
 {
     [Export]
     private PackedScene boidScene = ResourceLoader.Load("Boid.tscn") as PackedScene;
     private Boid chosenOne;
-    private int boidCount = 200;
-    private string groupName = "boids";
+    private int boidCount = 300;
+    private string boidGroupName = "boids";
 
+    public override void _EnterTree()
+    {
+        base._EnterTree();
+        AddBoids();
+    }
     public override void _Ready() {
         base._Ready();
-        AddBoids();
         StartTextUpdateTimer(CreateTimer());
         PickChosenOne();
+    }
+
+    public override void _PhysicsProcess(float delta)
+    {
+        var boids = GetTree().GetNodesInGroup(boidGroupName);
+        Parallel.For(0, boids.Count, index => {
+            Boid boid = boids[index] as Boid;
+            boid.UpdateDirection();
+        });
     }
 
     private void AddBoids() {
@@ -29,15 +44,15 @@ public class World : Node2D
         }
     }
 
-    private void StartTextUpdateTimer(Timer timer) {
+    private void StartTextUpdateTimer(Godot.Timer timer) {
         timer.Connect("timeout", this, "_On_Timer_Timeout");
         timer.WaitTime = 1.0f;
         timer.OneShot = false;
         timer.Start();
     }
 
-    private Timer CreateTimer() {
-        var timer = new Timer();
+    private Godot.Timer CreateTimer() {
+        var timer = new Godot.Timer();
         AddChild(timer);
         return timer;
     }
@@ -48,8 +63,8 @@ public class World : Node2D
     }
 
     private void PickChosenOne() {
-        var index = new RandomNumberGenerator().RandiRange(0, GetTree().GetNodesInGroup(groupName).Count);
-        chosenOne = GetTree().GetNodesInGroup(groupName)[index] as Boid;
+        var index = new RandomNumberGenerator().RandiRange(0, GetTree().GetNodesInGroup(boidGroupName).Count);
+        chosenOne = GetTree().GetNodesInGroup(boidGroupName)[index] as Boid;
         chosenOne.Chosen = true;
     }
 }
