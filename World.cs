@@ -3,16 +3,14 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class World : Node2D
-{
+public class World : Node2D {
     [Export]
     private PackedScene boidScene = ResourceLoader.Load("Boid.tscn") as PackedScene;
     private Boid chosenOne;
     private int boidCount = 300;
     private string boidGroupName = "boids";
 
-    public override void _EnterTree()
-    {
+    public override void _EnterTree() {
         base._EnterTree();
         AddBoids();
     }
@@ -22,8 +20,7 @@ public class World : Node2D
         PickChosenOne();
     }
 
-    public override void _PhysicsProcess(float delta)
-    {
+    public override void _PhysicsProcess(float delta) {
         var boids = GetTree().GetNodesInGroup(boidGroupName);
         Parallel.For(0, boids.Count, index => {
             Boid boid = boids[index] as Boid;
@@ -38,7 +35,7 @@ public class World : Node2D
         for (int i = 0; i < boidCount; i++) {
             var boid = boidScene.Instance() as Boid;
             boid.GlobalPosition = new Vector2(rng.RandfRange(0f, screensize.x), rng.RandfRange(0, screensize.y));
-            var direction = (random.NextDouble()* (Math.PI * 2))-Math.PI;
+            var direction = (random.NextDouble() * (Math.PI * 2)) - Math.PI;
             boid.GlobalRotation = (float)direction;
             AddChild(boid);
         }

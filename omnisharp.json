@@ -1,0 +1,8 @@
+{
+    "FormattingOptions": {
+        "NewLinesForBracesInMethods": false,
+        "NewLinesForBracesInControlBlocks": false,
+        "NewLinesForBracesInTypes": false,
+        "NewLinesForBracesInLambdaExpressionBody": false
+    }
+}

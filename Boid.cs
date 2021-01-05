@@ -3,16 +3,12 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-public class Boid : RigidBody2D
-{
-    // Declare member variables here. Examples:
-    // private int a = 2;
-    // private string b = "text";
+public class Boid : RigidBody2D {
     [Export]
     private string groupName = "boids";
 
     [Export]
-    public int MinSpeed { get; set;} = 80;
+    public int MinSpeed { get; set; } = 80;
 
     [Export]
     public int MaxSpeed { get; set; } = 120;
@@ -32,15 +28,13 @@ public class Boid : RigidBody2D
     public List<RayCast2D> RayCasts { get; } = new List<RayCast2D>();
 
 
-    public override void _EnterTree()
-    {
+    public override void _EnterTree() {
         AddToGroup(groupName);
         AddRayCasts();
     }
 
     // Called when the node enters the scene tree for the first time.
-    public override void _Ready()
-    {
+    public override void _Ready() {
         ApplyInitialImpluse();
     }
 
@@ -50,13 +44,10 @@ public class Boid : RigidBody2D
         Evade(closest);
     }
 
-    private void AddRayCasts()
-    {
+    private void AddRayCasts() {
         float i = 0;
-        while (i < 2 * Mathf.Pi)
-        {
-            if (IsInVisibleArea(i))
-            {
+        while (i < 2 * Mathf.Pi) {
+            if (IsInVisibleArea(i)) {
                 var rayCast = new RayCast2D();
                 AddChild(rayCast);
                 rayCast.Enabled = true;
@@ -67,33 +58,27 @@ public class Boid : RigidBody2D
         }
     }
 
-    private bool IsInVisibleArea(float i)
-    {
+    private bool IsInVisibleArea(float i) {
         // Note: Blindspot between 225° and 315°
         return (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4);
     }
 
-    private void ApplyInitialImpluse()
-    {
+    private void ApplyInitialImpluse() {
         var rng = new RandomNumberGenerator();
         var impulse = new Vector2(rng.RandiRange(MinSpeed, MaxSpeed), 0).Rotated(Rotation);
         ApplyImpulse(new Vector2(), impulse);
     }
 
-    public override void _IntegrateForces(Physics2DDirectBodyState state)
-    {
+    public override void _IntegrateForces(Physics2DDirectBodyState state) {
         base._IntegrateForces(state);
         TeleportOnScreenExit(state);
         MaintainSpeed();
     }
 
-    private void Evade(List<Vector2> closest)
-    {
-        closest.ForEach(node =>
-        {
+    private void Evade(List<Vector2> closest) {
+        closest.ForEach(node => {
             var distanceToNode = Position.DistanceTo(node);
-            if (distanceToNode < EvasionDistance)
-            {
+            if (distanceToNode < EvasionDistance) {
                 var angle = GetAngleTo(node);
                 this.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
             }
@@ -101,8 +86,7 @@ public class Boid : RigidBody2D
         this.LinearVelocity = new Vector2(MinSpeed, 0).Rotated(Rotation);
     }
 
-    private List<Vector2> GetClosestPoints(HashSet<Vector2> nodesInPerception, int amount)
-    {
+    private List<Vector2> GetClosestPoints(HashSet<Vector2> nodesInPerception, int amount) {
         List<Vector2> closest = new List<Vector2>();
         if (nodesInPerception.Count > 0)
             closest = nodesInPerception.OrderBy(node => Position.DistanceTo(node)).Take(amount).ToList();
@@ -110,28 +94,22 @@ public class Boid : RigidBody2D
         return closest;
     }
 
-    private HashSet<Vector2> GetNodesInPerception()
-    {
+    private HashSet<Vector2> GetNodesInPerception() {
         var setOfColliders = new HashSet<Vector2>();
-        RayCasts.ForEach(rayCast =>
-        {
+        RayCasts.ForEach(rayCast => {
             if (rayCast.IsColliding())
                 setOfColliders.Add(rayCast.GetCollisionPoint());
         });
         return setOfColliders;
     }
 
-    public override void _Draw()
-    {
+    public override void _Draw() {
         base._Draw();
-        if (Chosen)
-        {
+        if (Chosen) {
             DrawCircle(new Vector2(), perceptionRadius, vis_color);
             float i = 0;
-            while (i < 2 * Mathf.Pi)
-            {
-                if (IsInVisibleArea(i))
-                {
+            while (i < 2 * Mathf.Pi) {
+                if (IsInVisibleArea(i)) {
                     DrawLine(new Vector2(0, 0), new Vector2(0, -perceptionRadius).Rotated(i), new Color("#ff8888"), 1);
                 }
                 i += radStep;
@@ -139,8 +117,7 @@ public class Boid : RigidBody2D
         }
     }
 
-    private void TeleportOnScreenExit(Physics2DDirectBodyState state)
-    {
+    private void TeleportOnScreenExit(Physics2DDirectBodyState state) {
         var xform = state.Transform;
         var screensize = GetViewportRect().Size;
         if (xform.origin.x < 0)
@@ -155,8 +132,7 @@ public class Boid : RigidBody2D
         state.Transform = xform;
     }
 
-    private void MaintainSpeed()
-    {
+    private void MaintainSpeed() {
         if (LinearVelocity.Length() < MinSpeed)
             AppliedForce = new Vector2(MinSpeed, 0).Rotated(Rotation);
         else
