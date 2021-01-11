@@ -7,8 +7,7 @@ public class Boid : RigidBody2D {
     [Export]
     private string groupName = "boids";
 
-    [Export]
-    public int MinSpeed { get; set; } = 80;
+    private static int MinSpeed { get; set; } = 80;
 
     [Export]
     public int MaxSpeed { get; set; } = 120;
@@ -19,10 +18,13 @@ public class Boid : RigidBody2D {
     [Export]
     public bool Chosen { get; set; } = false;
 
-    private int perceptionRadius = 150;
-    public int EvasionDistance { get; } = 80;
+    private int perceptionRadius = 200;
+    public int SeparationDistance { get; } = 60;
 
-    private float radStep = 10 * Mathf.Pi / 180;
+    private static int stepDegree = 7;
+    private float radStep = stepDegree * Mathf.Pi / 180;
+
+    private static Vector2 forward = new Vector2(MinSpeed, 0);
 
     private Color vis_color = new Color(.867f, .91f, .247f, 0.1f);
     public List<RayCast2D> RayCasts { get; } = new List<RayCast2D>();
@@ -39,9 +41,12 @@ public class Boid : RigidBody2D {
     }
 
     public void UpdateDirection() {
-        HashSet<Vector2> nodesInPerception = GetNodesInPerception();
-        List<Vector2> closest = GetClosestPoints(nodesInPerception, 1);
-        Evade(closest);
+        HashSet<Boid> nodesInPerception = GetNodesInPerception();
+        List<Boid> closest = GetClosestPoints(nodesInPerception, 1);
+        if (closest.Count > 0) {
+            Separate(closest.First());
+            // Align(closest);
+        }
     }
 
     private void AddRayCasts() {
@@ -75,30 +80,49 @@ public class Boid : RigidBody2D {
         MaintainSpeed();
     }
 
-    private void Evade(List<Vector2> closest) {
-        closest.ForEach(node => {
-            var distanceToNode = Position.DistanceTo(node);
-            if (distanceToNode < EvasionDistance) {
-                var angle = GetAngleTo(node);
-                this.AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
-            }
-        });
-        this.LinearVelocity = new Vector2(MinSpeed, 0).Rotated(Rotation);
+    private void Separate(Boid closest) {
+        // Todo: Maybe rework separation vector calulcation to the acutal algorithm 
+        //   of the paper https://www.diva-portal.org/smash/get/diva2:1154793/FULLTEXT02
+
+        // Todo: It is not adviced to directly set Angular and LinearVelocity often (like every frame)
+        //   so this should be changed
+        var distanceToNode = Position.DistanceTo(closest.Position);
+        if (distanceToNode < SeparationDistance) {
+            var angle = GetAngleTo(closest.Position);
+            AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
+            LinearVelocity = forward.Rotated(Rotation);
+        }
     }
 
-    private List<Vector2> GetClosestPoints(HashSet<Vector2> nodesInPerception, int amount) {
-        List<Vector2> closest = new List<Vector2>();
+    private void Align(List<Boid> closest) {
+        //  1/n * Sum direction aller boids
+        Vector2 sum = new Vector2();
+        foreach (var boid in closest) {
+            sum += boid.LinearVelocity;
+        }
+        Vector2 result = (1/closest.Count) * sum;
+        var angle = GetAngleTo(result);
+        AppliedTorque = angle;
+        AppliedForce = forward.Rotated(Rotation);
+    }
+
+    private List<Boid> GetClosestPoints(HashSet<Boid> nodesInPerception, int amount) {
+        List<Boid> closest = new List<Boid>();
         if (nodesInPerception.Count > 0)
-            closest = nodesInPerception.OrderBy(node => Position.DistanceTo(node)).Take(amount).ToList();
+            closest = nodesInPerception.OrderBy(node => Position.DistanceTo(node.Position)).Take(amount).ToList();
 
         return closest;
     }
 
-    private HashSet<Vector2> GetNodesInPerception() {
-        var setOfColliders = new HashSet<Vector2>();
+    private HashSet<Boid> GetNodesInPerception() {
+        var setOfColliders = new HashSet<Boid>();
         RayCasts.ForEach(rayCast => {
-            if (rayCast.IsColliding())
-                setOfColliders.Add(rayCast.GetCollisionPoint());
+            if (rayCast.IsColliding()) {
+                var coll = rayCast.GetCollider();
+                if (coll is Boid) {
+                    setOfColliders.Add(coll as Boid);
+                }
+            }
         });
         return setOfColliders;
     }
@@ -134,8 +158,8 @@ public class Boid : RigidBody2D {
 
     private void MaintainSpeed() {
         if (LinearVelocity.Length() < MinSpeed)
-            AppliedForce = new Vector2(MinSpeed, 0).Rotated(Rotation);
+            LinearVelocity = forward.Rotated(Rotation);
         else
-            AppliedForce = new Vector2();
+            LinearVelocity = new Vector2();
     }
 }
