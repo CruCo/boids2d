@@ -1,9 +1,8 @@
 using Godot;
-using System;
 using System.Linq;
 using System.Collections.Generic;
 
-public class Boid : RigidBody2D {
+public class Boid : KinematicBody2D {
     [Export]
     private string groupName = "boids";
 
@@ -35,18 +34,16 @@ public class Boid : RigidBody2D {
         AddRayCasts();
     }
 
-    // Called when the node enters the scene tree for the first time.
-    public override void _Ready() {
-        ApplyInitialImpluse();
-    }
-
     public void UpdateDirection() {
         HashSet<Boid> nodesInPerception = GetNodesInPerception();
         List<Boid> closest = GetClosestPoints(nodesInPerception, 1);
-        if (closest.Count > 0) {
-            Separate(closest.First());
-            // Align(closest);
-        }
+
+        // if (closest.Count > 0) {
+        //     var seperateVector = Separate(closest.First());
+        //     var alignmentVector = Align(closest);
+        //     var movement = seperateVector + alignmentVector;
+        //     // TODO: 
+        // }
     }
 
     private void AddRayCasts() {
@@ -68,19 +65,12 @@ public class Boid : RigidBody2D {
         return (i < 5 * Mathf.Pi / 4 || i > 7 * Mathf.Pi / 4);
     }
 
-    private void ApplyInitialImpluse() {
-        var rng = new RandomNumberGenerator();
-        var impulse = new Vector2(rng.RandiRange(MinSpeed, MaxSpeed), 0).Rotated(Rotation);
-        ApplyImpulse(new Vector2(), impulse);
+    public override void _PhysicsProcess(float delta) {
+        TeleportOnScreenExit();
+        MaintainSpeed(delta);
     }
 
-    public override void _IntegrateForces(Physics2DDirectBodyState state) {
-        base._IntegrateForces(state);
-        TeleportOnScreenExit(state);
-        MaintainSpeed();
-    }
-
-    private void Separate(Boid closest) {
+    private Vector2 Separate(Boid closest) {
         // Todo: Maybe rework separation vector calulcation to the acutal algorithm 
         //   of the paper https://www.diva-portal.org/smash/get/diva2:1154793/FULLTEXT02
 
@@ -88,22 +78,27 @@ public class Boid : RigidBody2D {
         //   so this should be changed
         var distanceToNode = Position.DistanceTo(closest.Position);
         if (distanceToNode < SeparationDistance) {
-            var angle = GetAngleTo(closest.Position);
-            AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
-            LinearVelocity = forward.Rotated(Rotation);
+            return closest.Position;
+            // var angle = GetAngleTo(closest.Position);
+            // AngularVelocity = (-angle) * (1 / (distanceToNode / 2)) * Torque;
+            // LinearVelocity = forward.Rotated(Rotation);
+        } else {
+            return new Vector2();
         }
     }
 
-    private void Align(List<Boid> closest) {
-        //  1/n * Sum direction aller boids
+    private Vector2 Align(List<Boid> closest) {
+        //  1/n * Sum direction of all boids
         Vector2 sum = new Vector2();
         foreach (var boid in closest) {
-            sum += boid.LinearVelocity;
+            // sum += boid.LinearVelocity.Normalized();
         }
         Vector2 result = (1/closest.Count) * sum;
-        var angle = GetAngleTo(result);
-        AppliedTorque = angle;
-        AppliedForce = forward.Rotated(Rotation);
+        System.Console.Write(result);
+        return result;
+        // var angle = GetAngleTo(result);
+        // AppliedTorque = angle;
+        // AppliedForce = forward.Rotated(Rotation);
     }
 
     private List<Boid> GetClosestPoints(HashSet<Boid> nodesInPerception, int amount) {
@@ -141,25 +136,19 @@ public class Boid : RigidBody2D {
         }
     }
 
-    private void TeleportOnScreenExit(Physics2DDirectBodyState state) {
-        var xform = state.Transform;
+    private void TeleportOnScreenExit() {
         var screensize = GetViewportRect().Size;
-        if (xform.origin.x < 0)
-            xform.origin.x = screensize.x;
-        if (xform.origin.x > screensize.x)
-            xform.origin.x = 0;
-        if (xform.origin.y < 0)
-            xform.origin.y = screensize.y;
-        if (xform.origin.y > screensize.y)
-            xform.origin.y = 0;
-
-        state.Transform = xform;
+        if (Position.x < 0)
+            Position = new Vector2(screensize.x, Position.y);
+        if (Position.x > screensize.x)
+            Position = new Vector2(0, Position.y);
+        if (Position.y < 0)
+            Position = new Vector2(Position.x, screensize.y);
+        if (Position.y > screensize.y)
+            Position = new Vector2(Position.x, 0);
     }
 
-    private void MaintainSpeed() {
-        if (LinearVelocity.Length() < MinSpeed)
-            LinearVelocity = forward.Rotated(Rotation);
-        else
-            LinearVelocity = new Vector2();
+    private void MaintainSpeed(float delta) {
+        MoveAndCollide(new Vector2(MinSpeed, 0).Rotated(Rotation) * delta);
     }
 }

@@ -7,7 +7,7 @@ public class World : Node2D {
     [Export]
     private PackedScene boidScene = ResourceLoader.Load("Boid.tscn") as PackedScene;
     private Boid chosenOne;
-    private int boidCount = 50;
+    private int boidCount = 100;
     private string boidGroupName = "boids";
 
     public override void _EnterTree() {
@@ -56,7 +56,7 @@ public class World : Node2D {
 
     private void _On_Timer_Timeout() {
         RichTextLabel richTextLabel = GetNode("Speed") as RichTextLabel;
-        richTextLabel.Text = "Chosen speed: " + chosenOne.LinearVelocity.Length();
+        richTextLabel.Text = "Chosen speed: ";
     }
 
     private void PickChosenOne() {
